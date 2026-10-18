@@ -1,7 +1,15 @@
 import { ref, computed, watch } from 'vue'
-import { formatRupiah } from '../utils/formatRupiah'
 
-const STORAGE_KEY = 'dompetku-transactions' // samakan dengan kunci di proyek Anda
+const STORAGE_KEY = 'dompetku-transactions'
+
+// Fungsi helper untuk memformat angka ke mata uang Rupiah
+export function formatRupiah(number) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(number)
+}
 
 // Memastikan satu item transaksi punya bentuk yang benar
 function isValidTransaction(t) {
@@ -16,7 +24,7 @@ function isValidTransaction(t) {
   )
 }
 
-// Membaca data dari localStorage; jika rusak/kosong/tidak valid, kembalikan array kosong
+// Membaca data dari localStorage; jika rusak/kosong/tidak valid, kembalikan array kosong dengan try...catch
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -25,7 +33,7 @@ function loadFromStorage() {
     if (!Array.isArray(parsed)) return []
     return parsed.filter(isValidTransaction)
   } catch (e) {
-    console.error('Data localStorage korup, memakai data kosong.', e)
+    console.error('Data localStorage korup atau gagal diparsing, memakai data kosong.', e)
     return []
   }
 }
@@ -35,14 +43,14 @@ export function useTransactions() {
   const filterType = ref('semua')   // 'semua' | 'pemasukan' | 'pengeluaran'
   const filterMonth = ref('')       // format 'YYYY-MM', kosong = semua bulan
 
-  // Sinkronisasi otomatis ke localStorage setiap data berubah
+  // Sinkronisasi otomatis ke localStorage dengan try...catch untuk mengamankan setItem
   watch(
     transactions,
     (newValue) => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newValue))
       } catch (e) {
-        console.error('Gagal menyimpan ke localStorage.', e)
+        console.error('Gagal menyimpan data ke localStorage.', e)
       }
     },
     { deep: true }
@@ -77,8 +85,20 @@ export function useTransactions() {
       .sort((a, b) => b.total - a.total)
   })
 
+  // Fungsi saveTransaction untuk mengakomodasi pemanggilan saveTransaction(data, editId) dari App.vue
+  function saveTransaction(data, editId = null) {
+    if (editId !== null) {
+      const index = transactions.value.findIndex((t) => t.id === editId)
+      if (index !== -1) {
+        transactions.value[index] = { id: editId, ...data }
+      }
+    } else {
+      transactions.value.unshift({ id: crypto.randomUUID(), ...data })
+    }
+  }
+
   function addTransaction(data) {
-    transactions.value.push({ id: crypto.randomUUID(), ...data })
+    transactions.value.unshift({ id: crypto.randomUUID(), ...data })
   }
 
   function updateTransaction(id, data) {
@@ -91,9 +111,18 @@ export function useTransactions() {
   }
 
   return {
-    transactions, filterType, filterMonth, filteredTransactions,
-    totalIncome, totalExpense, balance, categoryTotals,
-    addTransaction, updateTransaction, deleteTransaction,
-    formatRupiah // diteruskan ke SummaryCard, CategoryReport, TransactionList lewat App.vue
+    transactions,
+    filterType,
+    filterMonth,
+    filteredTransactions,
+    totalIncome,
+    totalExpense,
+    balance,
+    categoryTotals,
+    saveTransaction,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    formatRupiah
   }
 }
