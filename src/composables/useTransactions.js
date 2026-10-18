@@ -24,7 +24,7 @@ function isValidTransaction(t) {
   )
 }
 
-// Membaca data dari localStorage; jika rusak/kosong/tidak valid, kembalikan array kosong dengan try...catch
+// Membaca data dari localStorage dengan penanganan error try...catch dan filter validitas
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)

@@ -1,14 +1,17 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useTransactions } from './composables/useTransactions'
+import { useToast } from './composables/useToast'
 import TransactionForm from './components/TransactionForm.vue'
 import TransactionList from './components/TransactionList.vue'
 import SummaryCard from './components/SummaryCard.vue'
 import FilterBar from './components/FilterBar.vue'
 import CategoryReport from './components/CategoryReport.vue'
+import ToastNotification from './components/ToastNotification.vue'
 
 // Memanggil composable data keuangan
 const { transactions, formatRupiah, saveTransaction, deleteTransaction } = useTransactions()
+const { showToast } = useToast()
 
 // State untuk filter dan mode edit
 const filterType = ref('')
@@ -39,11 +42,16 @@ const totalExpense = computed(() => {
 
 const balance = computed(() => totalIncome.value - totalExpense.value)
 
-// Handler Form Submit (Tambah / Update)
+// Handler Form Submit (Tambah / Update) + notifikasi
 const handleFormSubmit = (data) => {
   const editId = editingTransactionData.value ? editingTransactionData.value.id : null
   saveTransaction(data, editId)
   editingTransactionData.value = null
+  if (editId) {
+    showToast('Transaksi berhasil diubah', 'info')
+  } else {
+    showToast('Transaksi berhasil ditambahkan', 'success')
+  }
 }
 
 const handleEdit = (transaction) => {
@@ -54,10 +62,22 @@ const handleEdit = (transaction) => {
 const handleCancelEdit = () => {
   editingTransactionData.value = null
 }
+
+// Handler hapus + notifikasi
+const handleDelete = (id) => {
+  deleteTransaction(id)
+  // Jika transaksi yang dihapus sedang diedit, tutup mode edit
+  if (editingTransactionData.value && editingTransactionData.value.id === id) {
+    editingTransactionData.value = null
+  }
+  showToast('Transaksi berhasil dihapus', 'danger')
+}
 </script>
 
 <template>
   <div class="container">
+    <ToastNotification />
+
     <header>
       <h1>DompetKu</h1>
       <p>Aplikasi Pencatat Keuangan Pribadi Sederhana</p>
@@ -96,7 +116,7 @@ const handleCancelEdit = () => {
         :transactions="filteredTransactions"
         :formatRupiah="formatRupiah"
         @edit="handleEdit"
-        @delete="deleteTransaction"
+        @delete="handleDelete"
       />
     </main>
   </div>
