@@ -1,5 +1,4 @@
 import { ref, computed, watch } from 'vue'
-import { formatRupiah } from '../utils/formatRupiah'
 
 const STORAGE_KEY = 'dompetku-transactions' // samakan dengan kunci di proyek Anda
 
@@ -93,7 +92,6 @@ export function useTransactions() {
   return {
     transactions, filterType, filterMonth, filteredTransactions,
     totalIncome, totalExpense, balance, categoryTotals,
-    addTransaction, updateTransaction, deleteTransaction,
-    formatRupiah // diteruskan ke SummaryCard, CategoryReport, TransactionList lewat App.vue
+    addTransaction, updateTransaction, deleteTransaction
   }
 }
